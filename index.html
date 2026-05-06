@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Insight Search</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        input, select { padding: 5px; margin-right: 10px; }
+        .post { border: 1px solid #ddd; padding: 12px; margin-bottom: 10px; border-radius: 6px; }
+        .title { font-weight: bold; font-size: 18px; }
+        .insight { color: darkblue; margin-top: 6px; }
+        .tags { font-size: 12px; color: gray; }
+    </style>
+</head>
+<body>
+
+<h2>Insight Database</h2>
+
+<div>
+    <input type="text" id="query" placeholder="Search..." size="40">
+    
+    <select id="type">
+        <option value="">All Types</option>
+        <option value="opinion">Opinion</option>
+        <option value="data_analysis">Data Analysis</option>
+        <option value="forecast">Forecast</option>
+    </select>
+
+    <input type="text" id="tag" placeholder="Tag">
+
+    <button onclick="search()">Search</button>
+</div>
+
+<p id="count"></p>
+
+<div id="results"></div>
+
+<script>
+let allPosts = [];
+
+async function loadData() {
+    const res = await fetch("posts.json");
+    allPosts = await res.json();
+    search(); // initial load
+}
+
+function search() {
+    const q = document.getElementById("query").value.toLowerCase();
+    const type = document.getElementById("type").value;
+    const tag = document.getElementById("tag").value.toLowerCase();
+
+    let results = allPosts.filter(p => {
+        const matchQuery =
+            p.title.toLowerCase().includes(q) ||
+            p.summary.toLowerCase().includes(q) ||
+            p.insight.toLowerCase().includes(q);
+
+        const matchType = !type || p.type === type;
+
+        const matchTag = !tag || p.tags.some(t => t.toLowerCase().includes(tag));
+
+        return matchQuery && matchType && matchTag;
+    });
+
+    render(results);
+}
+
+function render(posts) {
+    const container = document.getElementById("results");
+    const count = document.getElementById("count");
+
+    container.innerHTML = "";
+    count.innerText = `${posts.length} results`;
+
+    posts.slice(0, 100).forEach(p => {
+        const div = document.createElement("div");
+        div.className = "post";
+
+        div.innerHTML = `
+            <div class="title">${p.title}</div>
+            <div>${p.summary}</div>
+            <div class="insight"><strong>Insight:</strong> ${p.insight}</div>
+            <div class="tags">Tags: ${p.tags.join(", ")}</div>
+            <div><em>${p.type}</em></div>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+loadData();
+</script>
+
+</body>
+</html>
