@@ -1,0 +1,40 @@
+<html>
+    <haed></haed>
+    <body>
+        <button class="menu-btn" id="menu-btn">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+        </button>
+
+        <style>
+            .menu-btn .bar {
+                display: block;
+                width: 25px;
+                height: 3px;
+                margin: 5px auto;
+                transition: all 0.3s ease-in-out;
+                background-color: black;
+            }
+
+            /* When the "open" class is added */
+            .menu-btn.open .bar:nth-child(1) {
+                transform: translateY(8px) rotate(45deg);
+            }
+            .menu-btn.open .bar:nth-child(2) {
+                opacity: 0;
+            }
+            .menu-btn.open .bar:nth-child(3) {
+                transform: translateY(-8px) rotate(-45deg);
+            }
+        </style>
+        <script >
+            const menuBtn = document.getElementById('menu-btn');
+
+            menuBtn.addEventListener('click', () => {
+                menuBtn.classList.toggle('open');
+            });
+        </script>
+        
+    </body>
+</html>

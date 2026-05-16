@@ -1,0 +1,76 @@
+<!-- The Hamburger Button -->
+<button class="hamburger-toggle" id="menuBtn" onclick="toggleMenu()" aria-expanded="false" aria-controls="collapsibleMenu">
+  <span></span>
+  <span></span>
+  <span></span>
+</button>
+
+<!-- The Collapsible Container -->
+<div id="collapsibleMenu" class="menu-content">
+  <div class="gcse-search"></div>
+</div>
+
+<style>
+/* Reset default button styling */
+.hamburger-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  width: 30px;
+  cursor: pointer;
+  display: block;
+}
+
+/* Base Hamburger Icon Bars */
+.hamburger-toggle span {
+  display: block;
+  height: 4px;
+  width: 100%;
+  background: #333; /* Icon color */
+  margin: 5px 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* ---- ICON TRANSFORMS (When Open) ---- */
+.hamburger-toggle.open span:nth-child(1) {
+  transform: translateY(9px) rotate(45deg);
+}
+
+.hamburger-toggle.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger-toggle.open span:nth-child(3) {
+  transform: translateY(-9px) rotate(-45deg);
+}
+
+/* ---- COLLAPSIBLE CONTAINER ---- */
+.menu-content {
+  display: none; /* Hidden by default */
+  background-color: #f9f9f9;
+  padding: 15px;
+  border: 1px solid #ddd;
+  margin-top: 10px;
+}
+
+/* Class to show the menu */
+.menu-show {
+  display: block !important;
+}
+</style>
+
+<script type="text/javascript">
+function toggleMenu() {
+  var menu = document.getElementById("collapsibleMenu");
+  var btn = document.getElementById("menuBtn");
+  
+  // Toggle the content visibility
+  var isOpen = menu.classList.toggle("menu-show");
+  
+  // Toggle the hamburger icon animation state
+  btn.classList.toggle("open");
+  
+  // Update accessibility state for screen readers
+  btn.setAttribute("aria-expanded", isOpen);
+}
+</script>
