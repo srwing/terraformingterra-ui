@@ -1,0 +1,215 @@
+<html>
+    <head>
+       <title>Insight Search</title>
+        <style>
+        body { font-family: Arial; margin: 20px; }
+        input, select { padding: 5px; margin-right: 10px; }
+        .post { border: 1px solid #ddd; padding: 12px; margin-bottom: 10px; border-radius: 6px; }
+        .title { font-weight: bold; font-size: 18px; }
+        .insight { color: darkblue; margin-top: 6px; }
+        .tags { font-size: 12px; color: gray; }
+        </style>
+    </head>
+    <body>
+        <button class="search-toggle" id="menuBtn" onclick="toggleMenu()" aria-expanded="false" aria-controls="collapsibleMenu">
+            <div class="icon-container">
+                <span class="lens"></span>
+                <span class="handle"></span>
+            </div>
+            <span class="toggle-text">Search ...</span>
+        </button>
+
+        <!-- The Collapsible Container -->
+        <!-- <div id="collapsibleMenu" class="menu-content"> -->
+<div  id="collapsibleMenu" class="menu-content" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
+
+            <!-- <script async src="https://cse.google.com/cse.js?cx=d6e66471519be4d46"></script>
+            <div class="gcse-search"></div> 
+            <iframe src="https://srwing.github.io/terraformingterra-ui/" tittle="Search ..."></iframe> -->
+<!-- ********************************************************************** 
+<h2>Insight Database</h2>
+
+<div>
+    <input type="text" id="query" placeholder="Search..." size="40">
+    
+    <select id="type">
+        <option value="">All Types</option>
+        <option value="opinion">Opinion</option>
+        <option value="data_analysis">Data Analysis</option>
+        <option value="forecast">Forecast</option>
+    </select>
+
+    <input type="text" id="tag" placeholder="Tag">
+
+    <button onclick="search()">Search</button>
+</div>
+
+<p id="count"></p>
+
+<div id="results"></div>
+
+
+***************************************************************** -->
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
+  <iframe src="https://srwing.github.io/terraformingterra-ui/" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;" frameborder="0" allowfullscreen></iframe>
+</div>
+        </div>
+
+        <style>
+            /* Reset button styling & align items */
+            .search-toggle {
+                background: none;
+                border: none;
+                padding: 0;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            /* Icon Container Context */
+            .icon-container {
+                position: relative;
+                width: 24px;
+                height: 24px;
+            }
+
+            /* 1. The Glass Lens (Circle) */
+            .icon-container .lens {
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                width: 14px;
+                height: 14px;
+                border: 3px solid #333;
+                border-radius: 50%;
+                transition: all 0.3s ease;
+                box-sizing: border-box;
+            }
+
+            /* 2. The Stick Handle (Diagonal line) */
+            .icon-container .handle {
+                position: absolute;
+                bottom: 2px;
+                right: 2px;
+                width: 3px;
+                height: 9px;
+                background-color: #333;
+                transform: rotate(-45deg);
+                transform-origin: bottom right;
+                transition: all 0.3s ease;
+            }
+
+            /* Text Label */
+            .toggle-text {
+                font-family: sans-serif;
+                font-size: 16px;
+                color: #333;
+                user-select: none;
+            }
+
+            /* ---- MORPHING TRANSFORMS (When Menu is Open) ---- */
+
+            /* Lens flattens out into one line of the X */
+            .search-toggle.open .lens {
+                border-radius: 0;
+                width: 3px;
+                height: 22px;
+                border: none;
+                background-color: #333;
+                top: 1px;
+                left: 11px;
+                transform: rotate(45deg);
+            }
+
+            /* Handle elongates and rotates into the opposing line of the X */
+            .search-toggle.open .handle {
+                height: 22px;
+                bottom: 1px;
+                right: 11px;
+                transform: rotate(-45deg);
+                transform-origin: center;
+            }
+
+            /* ---- COLLAPSIBLE CONTAINER ---- */
+            .menu-content {
+                display: none;
+                background-color: #f9f9f9;
+                padding: 15px;
+                border: 1px solid #ddd;
+                margin-top: 10px;
+            }
+
+            .menu-show {
+                display: block !important;
+            }
+        </style>
+
+        <script type="text/javascript">
+            function toggleMenu() {
+                var menu = document.getElementById("collapsibleMenu");
+                var btn = document.getElementById("menuBtn");
+                
+                var isOpen = menu.classList.toggle("menu-show");
+                btn.classList.toggle("open");
+                
+                btn.setAttribute("aria-expanded", isOpen);
+            }
+//****************************************
+let allPosts = [];
+
+async function loadData() {
+    const res = await fetch("posts.json");
+    allPosts = await res.json();
+    search(); // initial load
+}
+
+function search() {
+    const q = document.getElementById("query").value.toLowerCase();
+    const type = document.getElementById("type").value;
+    const tag = document.getElementById("tag").value.toLowerCase();
+
+    let results = allPosts.filter(p => {
+        const matchQuery =
+            p.title.toLowerCase().includes(q) ||
+            p.summary.toLowerCase().includes(q) ||
+            p.insight.toLowerCase().includes(q);
+
+        const matchType = !type || p.type === type;
+
+        const matchTag = !tag || p.tags.some(t => t.toLowerCase().includes(tag));
+
+        return matchQuery && matchType && matchTag;
+    });
+
+    render(results);
+}
+
+function render(posts) {
+    const container = document.getElementById("results");
+    const count = document.getElementById("count");
+
+    container.innerHTML = "";
+    count.innerText = `${posts.length} results`;
+
+    posts.slice(0, 100).forEach(p => {
+        const div = document.createElement("div");
+        div.className = "post";
+
+        div.innerHTML = `
+            <div class="title">${p.title}</div>
+            <div>${p.summary}</div>
+            <div class="insight"><strong>Insight:</strong> ${p.insight}</div>
+            <div class="tags">Tags: ${p.tags.join(", ")}</div>
+            <div><em>${p.type}</em></div>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+loadData();
+
+        </script>
+    </body>
+</html><!-- The Search Toggle Button -->
