@@ -1,94 +1,89 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Insight Search</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hardcoded Sidebar Loader</title>
     <style>
-        body { font-family: Arial; margin: 20px; }
-        input, select { padding: 5px; margin-right: 10px; }
-        .post { border: 1px solid #ddd; padding: 12px; margin-bottom: 10px; border-radius: 6px; }
-        .title { font-weight: bold; font-size: 18px; }
-        .insight { color: darkblue; margin-top: 6px; }
-        .tags { font-size: 12px; color: gray; }
+        body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background: #333; color: white; padding: 15px; display: flex; align-items: center; }
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        
+        /* Sidebar Styling */
+        #sidebar { width: 250px; background: #2c3e50; color: white; transition: 0.3s; overflow-y: auto; }
+        #sidebar.collapsed { width: 0; }
+        #sidebar a { display: block; padding: 15px; color: white; text-decoration: none; cursor: pointer; }
+        #sidebar a:hover { background: #34495e; }
+        #sidebar a.active { background: #1abc9c; font-weight: bold; }
+        
+        /* Content Area */
+        #content-area { flex: 1; }
+        iframe { width: 100%; height: 100%; border: none; }
+        #toggle-btn { background: #e74c3c; color: white; border: none; padding: 8px 12px; cursor: pointer; margin-right: 15px; }
     </style>
 </head>
 <body>
 
-<h2>Insight Database</h2>
+    <header>
+        <button id="toggle-btn" onclick="toggleSidebar()">☰</button>
+        <span>Sample Dashboard</span>
+    </header>
 
-<div>
-    <input type="text" id="query" placeholder="Search..." size="40">
-    
-    <select id="type">
-        <option value="">All Types</option>
-        <option value="opinion">Opinion</option>
-        <option value="data_analysis">Data Analysis</option>
-        <option value="forecast">Forecast</option>
-    </select>
+    <div class="main-container">
+        <!-- Sidebar links are injected here by JavaScript -->
+        <nav id="sidebar"></nav>
+        
+        <main id="content-area">
+            <iframe id="main-frame" src="about:blank"></iframe>
+        </main>
+    </div>
 
-    <input type="text" id="tag" placeholder="Tag">
+    <script>
+        // Put your list of HTML files directly in this array variable
+        const myFiles = [
+            {filename: "insightdb.html", displayName: "Insightdb"},
+            {filename: "insightdb_in_colapsdiv.html", displayName: "Insightdb in colapsable div"},
+            {filename: "gse-blogspot.html", displayName: "Google Search Engine"},
+            {filename: "https://srwing.blogspot.com/", displayName: "Blogspot.com example"}
+        ];
 
-    <button onclick="search()">Search</button>
-</div>
+        // Toggle Sidebar visibility
+        function toggleSidebar() { 
+            document.getElementById('sidebar').classList.toggle('collapsed'); 
+        }
 
-<p id="count"></p>
+        // Handle iframe navigation and active link highlighting
+        function loadPage(url, element) { 
+            document.getElementById('main-frame').src = url; 
+            const links = document.querySelectorAll('#sidebar a');
+            links.forEach(link => link.classList.remove('active'));
+            element.classList.add('active');
+        }
 
-<div id="results"></div>
-
-<script>
-let allPosts = [];
-
-async function loadData() {
-    const res = await fetch("posts.json");
-    allPosts = await res.json();
-    search(); // initial load
-}
-
-function search() {
-    const q = document.getElementById("query").value.toLowerCase();
-    const type = document.getElementById("type").value;
-    const tag = document.getElementById("tag").value.toLowerCase();
-
-    let results = allPosts.filter(p => {
-        const matchQuery =
-            p.title.toLowerCase().includes(q) ||
-            p.summary.toLowerCase().includes(q) ||
-            p.insight.toLowerCase().includes(q);
-
-        const matchType = !type || p.type === type;
-
-        const matchTag = !tag || p.tags.some(t => t.toLowerCase().includes(tag));
-
-        return matchQuery && matchType && matchTag;
-    });
-
-    render(results);
-}
-
-function render(posts) {
-    const container = document.getElementById("results");
-    const count = document.getElementById("count");
-
-    container.innerHTML = "";
-    count.innerText = `${posts.length} results`;
-
-    posts.slice(0, 100).forEach(p => {
-        const div = document.createElement("div");
-        div.className = "post";
-
-        div.innerHTML = `
-            <div class="title">${p.title}</div>
-            <div>${p.summary}</div>
-            <div class="insight"><strong>Insight:</strong> ${p.insight}</div>
-            <div class="tags">Tags: ${p.tags.join(", ")}</div>
-            <div><em>${p.type}</em></div>
-        `;
-
-        container.appendChild(div);
-    });
-}
-
-loadData();
-</script>
-
+        // Build sidebar links and load the first file automatically on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const sidebar = document.getElementById('sidebar');
+            
+            myFiles.forEach((file, index) => {
+                const link = document.createElement('a');
+                
+                // Clean up name display (e.g., "dashboard-stats.html" -> "dashboard-stats")
+                link.textContent = file.displayName; 
+                
+                // Assign individual click action
+                link.onclick = function() {
+                    loadPage(file.filename, this);
+                };
+                
+                // Automatically load and highlight the FIRST file in the variable array
+                if (index === 0) {
+                    link.classList.add('active');
+                    document.getElementById('main-frame').src = file.filename;
+                }
+                
+                sidebar.appendChild(link);
+            });
+        });
+    </script>
 </body>
 </html>
