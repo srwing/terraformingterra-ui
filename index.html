@@ -3,87 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title></title>
+    <title>Blog Archive Search</title>
     <style>
-        body { font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-        header { background: #333; color: white; padding: 15px; display: flex; align-items: center; }
-        .main-container { display: flex; flex: 1; overflow: hidden; }
-        
-        /* Sidebar Styling */
-        #sidebar { width: 250px; background: #2c3e50; color: white; transition: 0.3s; overflow-y: auto; }
-        #sidebar.collapsed { width: 0; }
-        #sidebar a { display: block; padding: 15px; color: white; text-decoration: none; cursor: pointer; }
-        #sidebar a:hover { background: #34495e; }
-        #sidebar a.active { background: #1abc9c; font-weight: bold; }
-        
-        /* Content Area */
-        #content-area { flex: 1; }
-        iframe { width: 100%; height: 100%; border: none; }
-        #toggle-btn { background: #e74c3c; color: white; border: none; padding: 8px 12px; cursor: pointer; margin-right: 15px; }
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --bg-color: #f4f6f7;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .search-container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 2;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        select {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent-color);
+        }
+
+        .status-bar {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        /* Results Target Div */
+        #resultsTarget {
+            max-height: 450px;
+            overflow-y: auto;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .result-item {
+            padding: 12px 8px;
+            border-bottom: 1px solid #f1f1f1;
+            transition: background 0.2s;
+        }
+
+        .result-item:hover {
+            background-color: #fdfdfd;
+        }
+
+        .result-link {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-size: 17px;
+            font-weight: 500;
+            display: block;
+        }
+
+        .result-link:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        /* Custom scrollbar for the results div */
+        #resultsTarget::-webkit-scrollbar {
+            width: 6px;
+        }
+        #resultsTarget::-webkit-scrollbar-thumb {
+            background-color: #ccc;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
 
-    <header>
-        <button id="toggle-btn" onclick="toggleSidebar()">☰</button>
-        <span>Sample Dashboard</span>
-    </header>
-
-    <div class="main-container">
-        <!-- Sidebar links are injected here by JavaScript -->
-        <nav id="sidebar"></nav>
-        
-        <main id="content-area">
-            <iframe id="main-frame" src="about:blank"></iframe>
-        </main>
+<div class="search-container">
+    <h1>Global Warming Archive Search</h1>
+    
+    <div class="search-controls">
+        <input type="text" id="textSearch" placeholder="Type keywords to filter titles...">
+        <select id="categoryDropdown">
+            <option value="">All Categories</option>
+            </select>
     </div>
 
-    <script>
-        // Put your list of HTML files directly in this array variable
-        const myFiles = [
-            {filename: "insightdb.html", displayName: "Insightdb"},
-            {filename: "insightdb_in_colapsdiv.html", displayName: "Insightdb in colapsable div"},
-            {filename: "gse-blogspot.html", displayName: "Google Search Engine"},
-            {filename: "https://srwing.blogspot.com/", displayName: "Blogspot.com example"}
-        ];
+    <div class="status-bar" id="statusMessage">Loading index...</div>
+    
+    <div id="resultsTarget"></div>
+</div>
 
-        // Toggle Sidebar visibility
-        function toggleSidebar() { 
-            document.getElementById('sidebar').classList.toggle('collapsed'); 
-        }
+<script>
+    // Global holding data structure
+    let categorizedData = {};
 
-        // Handle iframe navigation and active link highlighting
-        function loadPage(url, element) { 
-            document.getElementById('main-frame').src = url; 
-            const links = document.querySelectorAll('#sidebar a');
-            links.forEach(link => link.classList.remove('active'));
-            element.classList.add('active');
-        }
+    const textSearch = document.getElementById('textSearch');
+    const categoryDropdown = document.getElementById('categoryDropdown');
+    const resultsTarget = document.getElementById('resultsTarget');
+    const statusMessage = document.getElementById('statusMessage');
 
-        // Build sidebar links and load the first file automatically on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
+    // 1. Fetch the lightweight clean mapping file
+    async function initSearchEngine() {
+        try {
+            const response = await fetch('clean_labels.json');
+            if (!response.ok) throw new Error("Could not load data map file.");
             
-            myFiles.forEach((file, index) => {
-                const link = document.createElement('a');
-                
-                // Clean up name display (e.g., "dashboard-stats.html" -> "dashboard-stats")
-                link.textContent = file.displayName; 
-                
-                // Assign individual click action
-                link.onclick = function() {
-                    loadPage(file.filename, this);
-                };
-                
-                // Automatically load and highlight the FIRST file in the variable array
-                if (index === 0) {
-                    link.classList.add('active');
-                    document.getElementById('main-frame').src = file.filename;
-                }
-                
-                sidebar.appendChild(link);
-            });
+            categorizedData = await response.json();
+            
+            buildDropdownOptions();
+            executeSearch(); // Show everything initially
+            
+            // Set up real-time fast text tracking
+            textSearch.addEventListener('input', executeSearch);
+            categoryDropdown.addEventListener('change', executeSearch);
+            
+        } catch (error) {
+            console.error(error);
+            statusMessage.textContent = "Error loading search data index.";
+        }
+    }
+
+    // 2. Build sorted categories option list
+    function buildDropdownOptions() {
+        const sortedCategories = Object.keys(categorizedData).sort();
+        
+        sortedCategories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = `${cat} (${categorizedData[cat].length})`;
+            categoryDropdown.appendChild(opt);
         });
-    </script>
+    }
+
+    // 3. Ultra-fast, low-memory filtering process
+    function executeSearch() {
+        const query = textSearch.value.toLowerCase().trim();
+        const selectedCat = categoryDropdown.value;
+        
+        let pool = [];
+
+        // Step A: Determine the starting pool of articles
+        if (selectedCat) {
+            // Memory efficient: only look at posts belonging to the chosen category array
+            pool = categorizedData[selectedCat];
+        } else {
+            // Compile a unique pool of all articles across all categories
+            const seenUrls = new Set();
+            Object.values(categorizedData).forEach(articlesList => {
+                articlesList.forEach(article => {
+                    if (!seenUrls.has(article.url)) {
+                        seenUrls.add(article.url);
+                        pool.push(article);
+                    }
+                });
+            });
+            // Sort all posts alphabetically by title initially
+            pool.sort((a, b) => a.title.localeCompare(b.title));
+        }
+
+        // Step B: Filter the pool by text input typing queries (matching titles)
+        if (query) {
+            pool = pool.filter(article => article.title.toLowerCase().includes(query));
+        }
+
+        // Step C: Push elements directly to the target <div> output wrapper
+        renderToDiv(pool);
+    }
+
+    // 4. Update DOM Nodes instantly
+    function renderToDiv(articles) {
+        resultsTarget.innerHTML = '';
+        statusMessage.textContent = `Found ${articles.length} matching articles`;
+
+        if (articles.length === 0) {
+            resultsTarget.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">No matching articles found.</p>';
+            return;
+        }
+
+        articles.forEach(article => {
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            item.innerHTML = `
+                <a class="result-link" href="${article.url}" target="_blank">${article.title}</a>
+            `;
+            resultsTarget.appendChild(item);
+        });
+    }
+
+    // Start running on page window load execution paths
+    initSearchEngine();
+</script>
+
 </body>
 </html>
