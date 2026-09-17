@@ -1,0 +1,75 @@
+user: ubuntu
+current ip: 3.21.53.34 and/or run curl -s ifconfig.me
+
+sudo apt update
+sudo apt install python3-pip python3-venv nginx -y
+
+copy flask_app folder and files to the server
+cd flask_app
+python3 -m venv venv
+source venv/bin/activate
+
+mkdir -p ~/pip_tmp
+TMPDIR=~/pip_tmp 
+pip install --no-cache-dir -r requirements.txt
+
+#set folder permissions so the web server user can read your app
+sudo chown -R ubuntu:www-data /home/ubuntu/flask_app
+
+##setup nginx:  
+sudo vi /etc/nginx/sites-available/flask_app 
+server {
+    listen 80;
+    server_name _; # use _ in leu of ipaddress
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+sudo ln -s /etc/nginx/sites-available/flask_app /etc/nginx/sites-enabled/
+
+#test
+sudo nginx -t
+#apply changes
+sudo systemctl restart nginx.service
+
+## setup systemd server for gunicorn - flask_app.service
+sudo vi /etc/systemd/system/flask_app.service
+[Unit]
+Description=Gunicorn Flask App
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/flask_app
+
+ExecStart=/home/ubuntu/flask_app/venv/bin/gunicorn \
+          --workers 3 \
+          --bind 127.0.0.1:5000 \
+          app:app
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+
+## start gunicorn service
+sudo systemctl daemon-reload
+sudo systemctl start flaskapp.service
+sudo systemctl enable flaskapp
+
+## setup complete..
+VM boots
+  ↓
+Gunicorn starts automatically
+  ↓
+Nginx starts automatically
+  ↓
+Website available at http://[ipaddress]
+Note: https:// requires a certificate

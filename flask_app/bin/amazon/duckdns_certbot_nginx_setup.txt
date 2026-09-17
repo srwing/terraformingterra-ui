@@ -1,0 +1,69 @@
+Setting up Certbot with DuckDNS on an Ubuntu server is a great choice because it fully automates both the generation and the 90-day renewal of your SSL certificate.
+
+Since DuckDNS handles your DNS routing, the cleanest way to get a certificate is to use the Certbot Nginx plugin. Nginx will handle the security verification handshake automatically.
+
+Here are the step-by-step terminal commands to configure your DuckDNS domain and secure your Flask backend.
+
+Step 1: Tell Nginx to look for your Domain
+Before running Certbot, your Nginx server block needs to know that it is responsible for handling your new DuckDNS address.
+
+Open your Nginx configuration file for your Flask app (usually located in sites-available):
+
+Bash
+sudo nano /etc/nginx/sites-available/flask_app
+Locate the server_name line and change it from your raw IP address or localhost to your new DuckDNS domain:
+
+Nginx
+server_name yoursubdomain.duckdns.org;
+Save and close the file (Ctrl+O, Enter, Ctrl+X), then test and restart Nginx:
+
+Bash
+sudo nginx -t
+sudo systemctl restart nginx
+Step 2: Install Certbot and the Nginx Plugin
+We use snapd to install Certbot, which is the officially recommended method by Let's Encrypt to ensure you always have the most up-to-date security libraries.
+
+Ensure your core snap environment is updated:
+
+Bash
+sudo snap install core; sudo snap refresh core
+Install Certbot via Snap:
+
+Bash
+sudo snap install --classic certbot
+Link the Certbot command to your system path so you can run it easily:
+
+Bash
+sudo ln -s /snap/bin/certbot /usr/bin/certbot
+Step 3: Run Certbot to Fetch and Install Your SSL Certificate
+Now, run Certbot using the --nginx flag. This flag tells Certbot to automatically fetch the SSL certificate, adjust your Nginx configuration parameters, add the secure listen 443 ssl blocks, and restart Nginx for you.
+
+Run the following command (replace with your actual DuckDNS domain):
+
+Bash
+sudo certbot --nginx -d yoursubdomain.duckdns.org
+What happens next in the terminal:
+Email Request: It will ask for an email address. Enter a valid email so Let's Encrypt can warn you if a renewal ever fails.
+
+Terms of Service: Press A to agree to the terms.
+
+Sharing Email: Press Y or N regarding whether you want to share your email with the Electronic Frontier Foundation.
+
+Automated Setup: Certbot will speak to the Let's Encrypt servers, verify your DuckDNS domain points to your server, generate the cryptographic keys, and reconfigure Nginx.
+
+When it finishes, you will see a success message that looks like this:
+
+Congratulations! You have successfully enabled https://yoursubdomain.duckdns.org
+
+Step 4: Test the Automatic Renewal
+Let's Encrypt certificates are completely free but expire every 90 days. The snap installation automatically sets up a background system timer to check for expiring certificates twice a day.
+
+You can test that this automated renewal script works perfectly by performing a "dry run":
+
+Bash
+sudo certbot renew --dry-run
+If the dry run reports no errors, your server is officially on autopilot!
+
+Step 5: Update Your HTML Frontend Code - currently running in an HTML/JavaScript widget on Blogspot ...
+Now that your server is secured via Nginx, change your backend URL, currently on line 224 in the blogspot_interface.txt file, to look like this:
+src="https://globalwarming-arclein.duckdns.org"
