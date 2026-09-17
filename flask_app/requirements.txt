@@ -1,0 +1,11 @@
+Flask
+sentence-transformers
+scikit-learn
+numpy
+gunicorn
+flask-cors
+requests
+beautifulsoup4
+python-dateutil
+lxml
+Flask-Limiter
