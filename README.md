@@ -2,7 +2,7 @@ This application is a centralized, responsive search and data management portal.
 
 This directory contains the code that was used to copy Blogger blog posts to a database, 
 
-This code copies the blog posts at  to an SQLite database, insights.db.
+This code copies the blog posts at  to an SQLite database, insights.db https://drive.google.com/file/d/1NYCZWECMu9-_oJfBC_qN8b7TDEgf2nZO/view?usp=drive_link
  
 The update-pipeline.py script will update the databse, adding only new articles from the blog. If the database is empty it should try to copy all the posts from the blog.
 
