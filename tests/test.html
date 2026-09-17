@@ -1,0 +1,190 @@
+        <style>
+
+    body {
+        font-family: Arial;
+        max-width: 1000px;
+        margin: auto;
+        padding: 20px;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 12px;
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+
+    .card {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-top: 15px;
+        border-radius: 8px;
+    }
+
+    .insight {
+        background: #eef5ff;
+        padding: 10px;
+        border-radius: 6px;
+    }
+    .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top-color: #3498db; /* Matches your accent color */
+        animation: spin 1s ease-in-out infinite;
+        vertical-align: middle;
+        margin-right: 8px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    </style>
+	<h1>Insights Search</h1>
+
+    <input
+        id='searchBox'
+        placeholder='Search...'
+    >
+
+    <label>
+        <input type='checkbox' id='semantic'>
+        Semantic Search
+    </label>
+
+    <select id='categoryDropdown'>
+        <option value=''>All Categories</option>
+    </select>
+
+    <div id="loader" style="display: none; text-align: center; margin: 15px 0;">
+        <span class="spinner"></span> Loading...
+    </div>
+    <div id='results'><p>Enter a search term above.</p></div>
+
+    <script>
+        const BACKEND_URL = "http://3.21.53.34/";
+        // Show or hide loading indicator
+        function toggleLoader(show) {
+            document.getElementById('loader').style.display = show ? 'block' : 'none';
+        }
+
+        async function searchPosts() {
+            const q = document.getElementById('searchBox').value.trim();
+            const category = document.getElementById('categoryDropdown').value;
+            const semantic = document.getElementById('semantic').checked;
+
+            if (semantic && q.length > 0 && q.length < 3) {
+                document.getElementById('results').innerHTML =
+                    '<p>Semantic search requires at least 3 characters.</p>';
+                return;
+            }
+
+            if (!category && q.length === 1) {
+                document.getElementById('results').innerHTML =
+                    '<p>Enter at least 2 characters or select a category.</p>';
+                return;
+            }
+
+            toggleLoader(true); // START BUSY STATUS
+
+            try {
+                const response = await fetch(
+                    `${BACKEND_URL}/search?q=${encodeURIComponent(q)}&semantic=${semantic}&category=${encodeURIComponent(category)}`
+                );
+                
+                if (!response.ok) throw new Error("Network error");
+                
+                const posts = await response.json();
+                let html = '';
+
+                if (posts.length === 0) {
+                    html = '<p style="text-align:center; color:#999; margin-top:20px;">No matching articles found.</p>';
+                } else {
+                    posts.forEach(post => {
+                        html += `
+                        <div class="card">
+                            <h2><a href="${post.url}">${post.title}</a></h2>
+                            <p>${post.summary || ''}</p>
+                            <div class="insight">
+                                ${post.insight || ''}
+                            </div>
+                        </div>
+                        `;
+                    });
+                }
+
+                document.getElementById('results').innerHTML = html;
+            } catch (err) {
+                console.error("Search failed:", err);
+                document.getElementById('results').innerHTML = '<p>Error executing search.</p>';
+            } finally {
+                toggleLoader(false); // END BUSY STATUS
+            }
+        }
+
+        async function loadCategories() {
+            const q = document.getElementById('searchBox').value.trim();
+            const dropdown = document.getElementById('categoryDropdown');
+            const semantic = document.getElementById('semantic').checked;
+
+            // Remember what the user currently has selected so we don't clear their choice
+            const currentSelection = dropdown.value;
+
+            try {
+                // Pass the query text to get relevant counts
+                const response = await fetch(`${BACKEND_URL}/categories?q=${encodeURIComponent(q)}&semantic=${semantic}`);
+                const categories = await response.json();
+                
+                dropdown.innerHTML = '<option value="">All Categories</option>';
+                
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.name;
+                    option.textContent = cat.count > 0 ? `${cat.name} (${cat.count})` : cat.name;
+                    
+                    // Restore selection if this option matches what they picked before
+                    if (cat.name === currentSelection) {
+                        option.selected = true;
+                    }
+                    
+                    dropdown.appendChild(option);
+                });
+            } catch (err) {
+                console.error("Failed to update categories:", err);
+            }
+        }
+
+        // Event Listeners
+        let searchTimeout;
+        document.getElementById('searchBox').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(async () => {
+                // Run both concurrently on typing!
+                await loadCategories();
+                await searchPosts();
+            }, 450);
+        });
+
+        //document.getElementById('semantic').addEventListener('change', searchPosts);
+        //document.getElementById('categoryDropdown').addEventListener('change', searchPosts);
+        document.getElementById('semantic').addEventListener('change', async () => {
+            await loadCategories();
+            await searchPosts();
+        });
+
+        document.getElementById('categoryDropdown').addEventListener('change', async () => {
+            await loadCategories();
+            await searchPosts();
+        });
+        // Safe Initialization Routine
+        async function startSearchEngine() {
+            toggleLoader(true);
+            await loadCategories();
+            await searchPosts();
+            toggleLoader(false);
+        }
+
+        startSearchEngine();
+    </script>

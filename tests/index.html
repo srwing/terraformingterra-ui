@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog Archive Search</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #3498db;
+            --accent-hover: #2980b9;
+            --bg-color: #f4f6f7;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .search-container {
+            max-width: 750px;
+            margin: 40px auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+
+        .search-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input[type="text"] {
+            flex: 2;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        select {
+            flex: 1;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .search-btn {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            background-color: var(--accent-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent-color);
+        }
+
+        .status-bar {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        #resultsTarget {
+            max-height: 450px;
+            overflow-y: auto;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+        }
+
+        .result-item {
+            padding: 12px 8px;
+            border-bottom: 1px solid #f1f1f1;
+            transition: background 0.2s;
+        }
+
+        .result-item:hover {
+            background-color: #fdfdfd;
+        }
+
+        .result-link {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-size: 17px;
+            font-weight: 500;
+            display: block;
+        }
+
+        .result-link:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        #resultsTarget::-webkit-scrollbar {
+            width: 6px;
+        }
+        #resultsTarget::-webkit-scrollbar-thumb {
+            background-color: #ccc;
+            border-radius: 4px;
+        }
+
+        @media (max-width: 600px) {
+            .search-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="search-container">
+    <!-- <h1>Global Warming Archive Search</h1> -->
+    
+    <form id="searchForm" onsubmit="handleFormSubmit(event)">
+        <div class="search-controls">
+            <input type="text" id="textSearch" placeholder="Type keywords...">
+            
+            <select id="categoryDropdown">
+                <option value="">All Categories</option>
+            </select>
+            
+            <button type="submit" class="search-btn" id="searchButton">Search</button>
+        </div>
+    </form>
+
+    <div class="status-bar" id="statusMessage">Loading index...</div>
+    
+    <div id="resultsTarget"></div>
+</div>
+
+<script>
+    let categorizedData = {};
+    const BLOG_BASE_URL = "https://globalwarming-arclein.blogspot.com";
+
+    const textSearch = document.getElementById('textSearch');
+    const categoryDropdown = document.getElementById('categoryDropdown');
+    const resultsTarget = document.getElementById('resultsTarget');
+    const statusMessage = document.getElementById('statusMessage');
+
+    async function initSearchEngine() {
+        try {
+            const response = await fetch('clean_labels.json');
+            if (!response.ok) throw new Error("Could not load data map file.");
+            
+            categorizedData = await response.json();
+            
+            buildDropdownOptions();
+            executeSearch(); // Show everything initially
+            
+            categoryDropdown.addEventListener('change', executeSearch);
+            
+        } catch (error) {
+            console.error(error);
+            statusMessage.textContent = "Error loading search data index.";
+        }
+    }
+
+    function buildDropdownOptions() {
+        const sortedCategories = Object.keys(categorizedData).sort();
+        
+        sortedCategories.forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = `${cat} (${categorizedData[cat].length})`;
+            categoryDropdown.appendChild(opt);
+        });
+    }
+
+    function handleFormSubmit(event) {
+        event.preventDefault(); 
+        executeSearch();
+    }
+
+    function executeSearch() {
+        const query = textSearch.value.toLowerCase().trim();
+        const selectedCat = categoryDropdown.value;
+        
+        let pool = [];
+
+        if (selectedCat) {
+            pool = categorizedData[selectedCat];
+        } else {
+            const seenTitles = new Set();
+            Object.values(categorizedData).forEach(articlesList => {
+                articlesList.forEach(article => {
+                    if (!seenTitles.has(article.title)) {
+                        seenTitles.add(article.title);
+                        pool.push(article);
+                    }
+                });
+            });
+            pool.sort((a, b) => a.title.localeCompare(b.title));
+        }
+
+        if (query) {
+            pool = pool.filter(article => article.title.toLowerCase().includes(query));
+        }
+
+        renderToDiv(pool);
+    }
+
+    // HELPER: Auto-generates a clean Blogspot URL path based safely on the post's title
+    function generateBloggerUrl(title) {
+        return `${BLOG_BASE_URL}/search?q=${encodeURIComponent(title)}`;
+    }
+
+    function renderToDiv(articles) {
+        resultsTarget.innerHTML = '';
+        statusMessage.textContent = `Found ${articles.length} matching articles`;
+
+        if (articles.length === 0) {
+            resultsTarget.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">No matching articles found.</p>';
+            return;
+        }
+
+        articles.forEach(article => {
+            const item = document.createElement('div');
+            item.className = 'result-item';
+            
+            // Reconstructed Live Link
+            const dynamicUrl = generateBloggerUrl(article.title);
+            
+            item.innerHTML = `
+                <a class="result-link" href="${dynamicUrl}" target="_blank">${article.title}</a>
+            `;
+            resultsTarget.appendChild(item);
+        });
+    }
+
+    initSearchEngine();
+</script>
+
+</body>
+</html>
